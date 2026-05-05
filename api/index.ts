@@ -1,9 +1,11 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { db } from "./db";
+import { getDb } from "./db";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // Simple check for database table existence and initialization
+  let db;
   try {
+    db = getDb();
+    // Simple check for database table existence and initialization
     await db.execute(`
       CREATE TABLE IF NOT EXISTS app_state (
         id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -12,7 +14,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       )
     `);
   } catch (error) {
-    console.error("Initialization error:", error);
+    return res.status(500).json({ 
+      error: "Database Connection Failed", 
+      details: (error as Error).message,
+      help: "Ensure TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are set in Vercel Environment Variables."
+    });
   }
 
   if (req.method === "GET") {
